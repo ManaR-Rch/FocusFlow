@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -11,40 +12,47 @@
           color: #f7fafc;
       }
   </style>
-
-
 </head>
 <body class="p-4">
-
 
 <div class="flex flex-col sm:flex-row justify-between items-center mb-8 space-y-4 sm:space-y-0">
     <button onclick="openMultipleTasksModal()" class="bg-blue-500 text-white py-2 px-4 rounded hover:bg-blue-700">Add multiple +</button>
     
     <div class="flex items-center space-x-4">
-
-   
         <input type="text" placeholder="Search ..." class="py-2 px-4 rounded bg-gray-700 text-white outline-none" oninput="filterTasks(this.value)">
-        <button class="bg-gray-600 p-2 rounded">
-            <svg class="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M21 21l-6-6m0 0a7 7 0 1110 10 7 7 0 01-10-10z" stroke-width="2"/>
-            </svg>
-        </button>
+        
+        <!-- Boutons de tri et de filtrage -->
+        <select onchange="filterByPriority(this.value)" class="py-2 px-4 rounded bg-gray-700 text-white outline-none">
+            <option value="">Filtrer par priorité</option>
+            <option value="P1">P1 (High)</option>
+            <option value="P2">P2 (Medium)</option>
+            <option value="P3">P3 (Low)</option>
+        </select>
+        
+        <select onchange="sortByDate(this.value)" class="py-2 px-4 rounded bg-gray-700 text-white outline-none">
+            <option value="asc">Trier par Date (Ancien - Récent)</option>
+            <option value="desc">Trier par Date (Récent - Ancien)</option>
+        </select>
     </div>
+    
     <button onclick="openModal()" class="bg-blue-500 text-white py-2 px-4 rounded hover:bg-blue-700">Add Task +</button>
 </div>
+
 <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-    <div id="todoSection">
+    <div id="todoSection" ondrop="drop(event, 'to do')" ondragover="allowDrop(event)">
         <h2 class="font-bold border-b-2 border-red-400 pb-1 mb-4">To do | 0</h2>
     </div>
 
-    <div id="inProgressSection">
+    <div id="inProgressSection" ondrop="drop(event, 'in Progress')" ondragover="allowDrop(event)">
         <h2 class="font-bold border-b-2 border-yellow-400 pb-1 mb-4">In progress | 0</h2>
     </div>
-    <div id="doneSection">
+    
+    <div id="doneSection" ondrop="drop(event, 'done')" ondragover="allowDrop(event)">
         <h2 class="font-bold border-b-2 border-green-400 pb-1 mb-4">Done | 0</h2>
     </div>
 </div>
 
+<!-- Modal for Adding Task -->
 <div id="modal" class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 hidden">
     <div class="bg-gray-800 rounded-lg p-6 w-11/12 md:w-1/3">
         <h2 class="text-xl font-bold mb-4">Add / Edit Task</h2>
@@ -74,7 +82,7 @@
                 <label for="priority" class="block text-sm mb-1">Priority:</label>
                 <select id="priority" class="w-full p-2 rounded bg-gray-700 text-white outline-none">
                     <option value="P1">P1 (High)</option>
-                    <option value="P2">P2 (Hedium)</option>
+                    <option value="P2">P2 (Medium)</option>
                     <option value="P3">P3 (Low)</option>
                 </select>
             </div>
@@ -86,31 +94,6 @@
     </div>
 </div>
 
-<div id="multipleTasksModal" class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 hidden">
-    <div class="bg-gray-800 rounded-lg p-6 w-11/12 md:w-1/3">
-        <h2 class="text-xl font-bold mb-4">Add Multiple Tasks</h2>
-        <form id="multipleTasksForm">
-            <div id="tasksContainer">
-                
-                <div class="task-entry mb-4">
-                    <input type="text" placeholder="Task Name" class="task-name w-full p-2 rounded bg-gray-700 text-white outline-none mb-2">
-                    <textarea placeholder="Description" class="task-desc w-full p-2 rounded bg-gray-700 text-white outline-none mb-2"></textarea>
-                    <input type="date" class="task-date w-full p-2 rounded bg-gray-700 text-white outline-none mb-2">
-                    <select class="task-priority w-full p-2 rounded bg-gray-700 text-white outline-none">
-                        <option value="P1">P1 (High)</option>
-                        <option value="P2">P2 (Medium)</option>
-                        <option value="P3">P3 (Low)</option>
-                    </select>
-                </div>        
-                    <div class="flex justify-end space-x-2">
-                        <button type="button" onclick=closeMultipleTasksModal() class="bg-gray-500 text-white py-2 px-4 rounded hover:bg-gray-700">Cancel</button>
-                        <button type="submit" class="bg-blue-500 text-white py-2 px-4 rounded hover:bg-blue-700">Save All</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-
-
 <script>
     let taskCount = { "to do": 0, "in Progress": 0, "done": 0 };
     let isEditing = false; 
@@ -120,7 +103,6 @@
         document.getElementById('modal').classList.remove('hidden');
     }
     
-
     function closeModal() {
         document.getElementById('modal').classList.add('hidden');
         document.getElementById('taskForm').reset();
@@ -137,6 +119,13 @@
         const date = document.getElementById('date').value;
         const priority = document.getElementById('priority').value;
 
+        // Vérifier si la date est logique 
+        const today = new Date().toISOString().split('T')[0];
+        if (date < today) {
+            alert("La date ne peut pas être intérieure à aujourd'hui.");
+            return; 
+        }
+
         let priorityColor = priority === "P1" ? "border-red-400" : priority === "P2" ? "border-orange-400" : "border-green-400";
 
         if (isEditing && currentTaskElement) {
@@ -148,6 +137,8 @@
             isEditing = false;
         } else {
             const newTask = document.createElement('div');
+            newTask.setAttribute('draggable', 'true');
+            newTask.setAttribute('ondragstart', 'drag(event)');
             newTask.classList.add('bg-gray-800', 'p-4', 'rounded', 'border-l-4', priorityColor, 'mb-4');
             newTask.innerHTML = `
                 <h3 class="task-title font-bold mb-2">${taskName}</h3>
@@ -160,7 +151,6 @@
                 </div>
             `;
             document.getElementById(status.replace(' ', '') + 'Section').appendChild(newTask);
-            console.log(status.replace(' ', '') + 'Section')
             taskCount[status]++;
             updateTaskCount(status);
         }
@@ -169,118 +159,122 @@
     });
 
     function deleteTask(button) {
-    const task = button.parentElement.parentElement;
-    const sectionId = task.parentElement.id;
-    let status = "";
+        const task = button.parentElement.parentElement;
+        const sectionId = task.parentElement.id;
+        let status = "";
 
+        if (sectionId === "todoSection") {
+            status = "to do";
+        } else if (sectionId === "inProgressSection") {
+            status = "in Progress";
+        } else {
+            status = "done";
+        }
 
-    if (sectionId === "todoSection") {
-        status = "to do";
-    } else if (sectionId === "inProgressSection") {
-        status = "in Progress";
-    } else if (sectionId === "doneSection") {
-        status = "done";
-    }
-    task.remove();
-    taskCount[status]--;
-    updateTaskCount(status);
-}
-
-    function updateTaskCount(section) {
-        const sectionHeader = document.querySelector(`#${section.replace(' ', '')}Section h2`);
-        console.log(section)
-        sectionHeader.innerHTML = `${section} | ${taskCount[section]}`;
+        task.remove();
+        taskCount[status]--;
+        updateTaskCount(status);
     }
 
     function editTask(button) {
-        const task = button.parentElement.parentElement;
-        document.getElementById('taskName').value = task.querySelector('.task-title').textContent;
-        document.getElementById('description').value = task.querySelector('.task-desc').textContent;
-        document.getElementById('status').value = task.parentElement.id.includes('todo') ? 'To Do' : 
-                                                task.parentElement.id.includes('inprogress') ? 'In Progress' : 'Done';
-        document.getElementById('date').value = task.querySelector('.task-date').textContent.replace('Date: ', '');
-        document.getElementById('priority').value = task.querySelector('.task-priority').textContent.replace('Priority: ', '');
-        currentTaskElement = task;
         isEditing = true;
+        currentTaskElement = button.parentElement.parentElement;
+
+        document.getElementById('taskName').value = currentTaskElement.querySelector('.task-title').textContent;
+        document.getElementById('description').value = currentTaskElement.querySelector('.task-desc').textContent;
+        document.getElementById('status').value = currentTaskElement.parentElement.id.replace('Section', '').replace(/([A-Z])/g, ' $1');
+        document.getElementById('date').value = currentTaskElement.querySelector('.task-date').textContent.split(': ')[1];
+        document.getElementById('priority').value = currentTaskElement.querySelector('.task-priority').textContent.split(': ')[1];
+        
         openModal();
     }
-    function filterTasks(query) {
-    const tasks = document.querySelectorAll('#todoSection .bg-gray-800, #inProgressSection .bg-gray-800, #doneSection .bg-gray-800');
-    query = query.toLowerCase();
-    
-    tasks.forEach(task => {
-        const title = task.querySelector('.task-title').textContent.toLowerCase();
-        const description = task.querySelector('.task-desc').textContent.toLowerCase();
+
+    function updateTaskCount(status) {
+        const section = document.getElementById(status.replace(' ', '') + 'Section');
+        const title = section.querySelector('h2');
+        title.textContent = `${title.textContent.split('|')[0]} | ${taskCount[status]}`;
+    }
+
+    function allowDrop(event) {
+        event.preventDefault();
+    }
+
+    function drag(event) {
+        event.dataTransfer.setData("text/plain", event.target.outerHTML);
+        event.dataTransfer.setData("taskStatus", event.target.parentElement.id.replace('Section', '').replace(/([A-Z])/g, ' $1'));
+    }
+
+    function drop(event, newStatus) {
+        event.preventDefault();
+        const data = event.dataTransfer.getData("text/plain");
+        const taskStatus = event.dataTransfer.getData("taskStatus");
+
+        const taskElement = document.createElement('div');
+        taskElement.innerHTML = data;
+        taskElement.setAttribute('draggable', 'true');
+        taskElement.setAttribute('ondragstart', 'drag(event)');
         
-        if (title.includes(query) || description.includes(query)) {
-            task.style.display = "block"; 
-        } else {
-            task.style.display = "none"; 
+    
+        let priority = taskElement.querySelector('.task-priority').textContent.split(': ')[1];
+        let priorityColor = priority === "P1" ? "border-red-400" : priority === "P2" ? "border-orange-400" : "border-green-400";
+        taskElement.className = `bg-gray-800 p-4 rounded border-l-4 ${priorityColor} mb-4`;
+
+        document.getElementById(newStatus.replace(' ', '') + 'Section').appendChild(taskElement);
+
+        // Supprimer l'élément de l'ancienne section
+        const oldSection = document.getElementById(taskStatus.replace(' ', '') + 'Section');
+        const taskElements = oldSection.querySelectorAll('.task-title');
+        
+        for (let task of taskElements) {
+            if (task.outerHTML === data) {
+                task.parentElement.remove();
+                taskCount[taskStatus]--;
+                updateTaskCount(taskStatus);
+                break;
+            }
         }
-    });
-}
-function openMultipleTasksModal() {
-    document.getElementById('multipleTasksModal').classList.remove('hidden');
-}
-
-function closeMultipleTasksModal() {
-    document.getElementById('multipleTasksModal').classList.add('hidden');
-    document.getElementById('multipleTasksForm').reset();
-}
-
-function addNewTaskEntry() {
-    const tasksContainer = document.getElementById('tasksContainer');
-    const newTaskEntry = document.createElement('div');
-    newTaskEntry.classList.add('task-entry', 'mb-4');
-    newTaskEntry.innerHTML = `
-        <input type="text" placeholder="Task Name" class="task-name w-full p-2 rounded bg-gray-700 text-white outline-none mb-2">
-        <textarea placeholder="Description" class="task-desc w-full p-2 rounded bg-gray-700 text-white outline-none mb-2"></textarea>
-        <input type="date" class="task-date w-full p-2 rounded bg-gray-700 text-white outline-none mb-2">
-        <select class="task-priority w-full p-2 rounded bg-gray-700 text-white outline-none">
-            <option value="P1">P1 (High)</option>
-            <option value="P2">P2 (Medium)</option>
-            <option value="P3">P3 (Low)</option>
-        </select>
-    `;
-    tasksContainer.appendChild(newTaskEntry);
-}
-
-document.getElementById('multipleTasksForm').addEventListener('submit', function (event) {
-    event.preventDefault();
-    
-    const tasksContainer = document.getElementById('tasksContainer');
-    const taskEntries = tasksContainer.querySelectorAll('.task-entry');
-    
-    taskEntries.forEach(entry => {
-        const taskName = entry.querySelector('.task-name').value;
-        const description = entry.querySelector('.task-desc').value;
-        const date = entry.querySelector('.task-date').value;
-        const priority = entry.querySelector('.task-priority').value;
         
+        taskCount[newStatus]++;
+        updateTaskCount(newStatus);
+    }
     
-        addTaskToUI(taskName, description, "to do", date, priority);
-    });
+    function filterTasks(searchTerm) {
+        const tasks = document.querySelectorAll('.grid div div');
+        tasks.forEach(task => {
+            const title = task.querySelector('.task-title').textContent.toLowerCase();
+            if (title.includes(searchTerm.toLowerCase())) {
+                task.parentElement.style.display = 'block';
+            } else {
+                task.parentElement.style.display = 'none';
+            }
+        });
+    }
 
-    closeMultipleTasksModal();
-});
+    function filterByPriority(priority) {
+        const tasks = document.querySelectorAll('.grid div div');
+        tasks.forEach(task => {
+            const taskPriority = task.querySelector('.task-priority').textContent.split(': ')[1];
+            if (priority === '' || taskPriority === priority) {
+                task.parentElement.style.display = 'block';
+            } else {
+                task.parentElement.style.display = 'none';
+            }
+            
+        });
+    }
 
-function addTaskToUI(taskName, description, status, date, priority) {
-    let priorityColor = priority === "P1" ? "border-red-400" : priority === "P2" ? "border-orange-400" : "border-green-400";
-    const newTask = document.createElement('div');
-    newTask.classList.add('bg-gray-800', 'p-4', 'rounded', 'border-l-4', priorityColor, 'mb-4');
-    newTask.innerHTML = `
-        <h3 class="task-title font-bold mb-2">${taskName}</h3>
-        <p class="task-desc text-sm text-gray-300 mb-2">${description}</p>
-        <p class="task-date text-sm">Date: ${date}</p>
-        <p class="task-priority text-sm">Priority: ${priority}</p>
-        <div class="flex justify-between mt-2">
-            <button class="text-red-500" onclick="deleteTask(this)">Delete</button>
-            <button class="text-yellow-500" onclick="editTask(this)">Edit</button>
-        </div>
-    `;
-    document.getElementById(status.replace(' ', '') + 'Section').appendChild(newTask);
-}
-
+    function sortByDate(order) {
+        const sections = [document.getElementById('todoSection'), document.getElementById('inProgressSection'), document.getElementById('doneSection')];
+        sections.forEach(section => {
+            const tasks = Array.from(section.children).slice(1);
+            tasks.sort((a, b) => {
+                const dateA = new Date(a.querySelector('.task-date').textContent.split(': ')[1]);
+                const dateB = new Date(b.querySelector('.task-date').textContent.split(': ')[1]);
+                return order === 'asc' ? dateA - dateB : dateB - dateA;
+            });
+            tasks.forEach(task => section.appendChild(task));
+        });
+    }
 </script>
 
 </body>
